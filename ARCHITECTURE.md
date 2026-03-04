@@ -35,12 +35,12 @@
  ┌─────────────────────────────────────────────────────────────────────┐
  │                        flex-runtime  ◄── YOU ARE HERE               │
  │                                                                     │
- │  ┌──────────────┐   ┌──────────────────────┐   ┌────────────────┐  │
+ │  ┌──────────────┐   ┌───────────────────────┐   ┌────────────────┐  │
  │  │  FlexModule  │   │ FlexAppViewerComponent│   │  Nav Resolvers │  │
  │  │  (DI Hub)    │   │ (Rendering Engine)    │   │  (Guards)      │  │
- │  └──────┬───────┘   └──────────┬───────────┘   └───────┬────────┘  │
- └─────────┼────────────────────┼──────────────────────────┼──────────┘
-           │                    │                           │
+ │  └──────┬───────┘   └──────────┬────────────┘   └───────┬────────┘  │
+ └─────────┼────────────────────┼──────────────────────────┼───────────┘
+           │                    │                          │
      ┌─────▼──────┐      ┌──────▼──────┐          ┌────────▼────────┐
      │flex-config │      │ flex-router │          │  flex-forms     │
      │flex-ops    │      │(FlexScreen  │          │(FormToScreen    │
@@ -56,16 +56,16 @@
 
 ```
  ┌──────────────────┬────────────────────────────────────────────────────┐
- │ Library          │ What it owns                                        │
+ │ Library          │ What it owns                                       │
  ├──────────────────┼────────────────────────────────────────────────────┤
  │ flex-runtime     │ Bootstrap, lifecycle, DI registration, nav guards  │
- │ flex-host        │ Shell / micro-frontend container                    │
- │ flex-router      │ Screen navigation, FlexScreenComponent              │
- │ flex-config      │ ConfigurationService, remote config fetching        │
- │ flex-forms       │ Dynamic form generation & validation                │
- │ flex-operations  │ NgRx stores, effects, business-level actions        │
- │ flex-shared      │ Shared utilities, interceptors, helpers             │
- │ flex-types       │ Pure TypeScript interfaces & type definitions       │
+ │ flex-host        │ Shell / micro-frontend container                   │
+ │ flex-router      │ Screen navigation, FlexScreenComponent             │
+ │ flex-config      │ ConfigurationService, remote config fetching       │
+ │ flex-forms       │ Dynamic form generation & validation               │
+ │ flex-operations  │ NgRx stores, effects, business-level actions       │
+ │ flex-shared      │ Shared utilities, interceptors, helpers            │
+ │ flex-types       │ Pure TypeScript interfaces & type definitions      │
  └──────────────────┴────────────────────────────────────────────────────┘
 ```
 
@@ -259,27 +259,27 @@ This resolver lives in `libs/flex-runtime/src/lib/allow-navigation-resolvers/`.
 
 ```
   NgRx STORE (managed by flex-runtime via FlexModule)
-  ┌─────────────────────────────────────────────────────┐
-  │                                                     │
-  │  ConfigurationStore        OperationStore           │
-  │  ┌──────────────────┐     ┌──────────────────────┐  │
+  ┌──────────────────────────────────────────────────────┐
+  │                                                      │
+  │  ConfigurationStore        OperationStore            │
+  │  ┌──────────────────┐     ┌───────────────────────┐  │
   │  │ app config       │     │ HTTP operation state  │  │
   │  │ screen defs      │     │ loading / error flags │  │
   │  │ endpoints        │     │ CLEARED on teardown ◄─┼──┼── prevents leakage
-  │  └──────────────────┘     └──────────────────────┘  │
-  │                                                     │
+  │  └──────────────────┘     └───────────────────────┘  │
+  │                                                      │
   │  ComponentTrackingStore    FlexPropertyBindingStore  │
-  │  ┌──────────────────┐     ┌──────────────────────┐  │
+  │  ┌──────────────────┐     ┌───────────────────────┐  │
   │  │ which components │     │ dynamic data bindings │  │
   │  │ are mounted      │     │ between screen fields │  │
-  │  └──────────────────┘     └──────────────────────┘  │
-  │                                                     │
-  │  EnvironmentVariablesStore  FlexRuntimeConfigStore  │
-  │  ┌──────────────────┐      ┌──────────────────────┐ │
+  │  └──────────────────┘     └───────────────────────┘  │
+  │                                                      │
+  │  EnvironmentVariablesStore  FlexRuntimeConfigStore   │
+  │  ┌──────────────────┐      ┌───────────────────────┐ │
   │  │ env-specific     │      │ runtime-level feature │ │
   │  │ configuration    │      │ flags & settings      │ │
-  │  └──────────────────┘      └──────────────────────┘ │
-  └─────────────────────────────────────────────────────┘
+  │  └──────────────────┘      └───────────────────────┘ │
+  └──────────────────────────────────────────────────────┘
 ```
 
 ---

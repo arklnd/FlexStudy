@@ -28,9 +28,9 @@ Evidence taken directly from `apps/client-app/src/app/views/client/client.module
 ```
   HOST APP IMPORTS FROM @hyland/flex-runtime
   ═══════════════════════════════════════════
-  ┌────────────────────────────────────┬───────────────────────────────────────┐
-  │ Symbol                             │ How it is used                        │
-  ├────────────────────────────────────┼───────────────────────────────────────┤
+  ┌────────────────────────────────────┬────────────────────────────────────────┐
+  │ Symbol                             │ How it is used                         │
+  ├────────────────────────────────────┼────────────────────────────────────────┤
   │ FlexModule                         │ FlexModule.forRoot(config) in NgModule │
   │ FLEX_EXTERNAL_PROVIDER             │ multi-provider token in NgModule       │
   │ FlexExternalProvider               │ interface that providers implement     │
@@ -38,7 +38,7 @@ Evidence taken directly from `apps/client-app/src/app/views/client/client.module
   │ FlexRuntimeConfigService           │ constructor @Inject injection          │
   │ FlexBroadcastService               │ constructor @Inject injection          │
   │ CanScreenDeactivateGuard           │ route canDeactivate guard              │
-  └────────────────────────────────────┴───────────────────────────────────────┘
+  └────────────────────────────────────┴────────────────────────────────────────┘
 
   HOST APP TEMPLATE USAGE:
   ════════════════════════
@@ -66,9 +66,9 @@ Evidence taken directly from `apps/client-app/src/app/views/client/client.module
   ┌──────────────────────────────────────────────────────────────────┐
   │  @NgModule({                                                     │
   │    imports: [                                                    │
-  │      FlexModule.forRoot({ flexAuthService: ... })  ← PROBLEM    │
-  │      StoreModule.forRoot({})                       ← PROBLEM    │
-  │      StoreDevtoolsModule.instrument({})            ← PROBLEM    │
+  │      FlexModule.forRoot({ flexAuthService: ... })  ← PROBLEM     │
+  │      StoreModule.forRoot({})                       ← PROBLEM     │
+  │      StoreDevtoolsModule.instrument({})            ← PROBLEM     │
   │    ]                                                             │
   │  })                                                              │
   │  export class ClientModule {}                                    │
@@ -422,7 +422,7 @@ The key insight is: **the public surface area is small and stable**. SimpleRunti
   │ flex-operations lib is a     │  HIGH  │  HIGH  │ flex-operations is a separate lib with │
   │ deep NgRx dependency         │        │        │ its own OperationStore. Must be        │
   │                              │        │        │ migrated in parallel or kept on NgRx   │
-  │                              │        │        │ with a compatibility layer.             │
+  │                              │        │        │ with a compatibility layer.            │
   └──────────────────────────────┴────────┴────────┴────────────────────────────────────────┘
 ```
 
@@ -513,6 +513,385 @@ The key insight is: **the public surface area is small and stable**. SimpleRunti
 
 ---
 
+## 10. Beyond the Swap — Additional Improvements Found in the Codebase
+
+The migration to SimpleRuntime opens a natural window to fix **pre-existing code smells, known bugs, and deferred tech-debt items** that are documented directly in the source with `TODO` comments and in-code warnings. Each improvement below is traced to a specific file.
+
+---
+
+### 10A. Fix the History-Corruption Bug in the Navigation Guard
+
+**File**: `libs/flex-runtime/src/lib/guards/can-screen-deactivate.guard.ts`
+
+The guard itself has a multi-line comment documenting a known, unfixed navigation history corruption bug:
+
+```
+  CURRENT BUG (documented in code):
+  ════════════════════════════════════
+  History before:  A → B → C          (user is at C)
+  User presses back to B, guard fires, user cancels navigation.
+  Angular re-navigates to C … but overwrites history:
+  History after:   A → C → C          ← B is gone forever
+
+  ROOT CAUSE: Angular's history API limitation, tracked at
+  https://github.com/angular/angular/issues/13586
+```
+
+Angular 17+ introduced the `withNavigationErrorHandler` and the `skipLocationChange` navigation extras that reduce this issue. Angular 21's fully-stabilised Navigation API (`withViewTransitions`, `NavigationBehaviorOptions`) resolves it completely.
+
+```
+  SIMPLERUNTIME FIX:
+  ══════════════════
+  canScreenDeactivateFn = (...) => {
+    if (!svc.canRouteTreeSafelyNavigate(nextState.url)) {
+      return dialogService.confirm(...).then(confirmed => {
+        if (!confirmed) {
+          // Angular 21: use skipLocationChange or NavigationBehaviorOptions
+          // to prevent history being rewritten on cancel
+          router.navigate([currentState.url], { skipLocationChange: true });
+          return false;
+        }
+        return true;
+      });
+    }
+    return true;
+  };
+```
+
+**Impact**: Navigation history works correctly. No more `A → C → C` anomaly.
+
+---
+
+### 10B. Retire the `temp/` External Provider (Tracked as Tech-Debt)
+
+**File**: `libs/flex-runtime/src/lib/services/temp/flex-external-provider.interface.ts`
+
+The `FLEX_EXTERNAL_PROVIDER` token and `FlexExternalProvider` interface live in a folder literally named `temp/`. The JSDoc on the interface confirms this explicitly:
+
+```typescript
+/**
+ * A temporary work around for connectors. The consumer is able to create a
+ * Flex External Provider, inject it, and then the runtime will listen to this
+ * provider and will update any controls, if there is any hook configuration
+ * for this provider.
+ */
+export interface FlexExternalProvider {
+  providerId: string;
+  valueProvided$: Observable<any>;    // ← any-typed, Observable-based
+}
+```
+
+```
+  CURRENT (temp workaround):            SIMPLERUNTIME (first-class):
+  ═══════════════════════════           ══════════════════════════════════
+  FLEX_EXTERNAL_PROVIDER token          FLEX_CONNECTOR_PROVIDER token
+  FlexExternalProvider {                FlexConnectorProvider<T> {
+    valueProvided$: Observable<any>       valueProvided: Signal<T | undefined>
+  }                                     }
+
+  Host app code:                        Host app code:
+  { provide: FLEX_EXTERNAL_PROVIDER,    { provide: FLEX_CONNECTOR_PROVIDER,
+    useExisting: MyProvider,              useExisting: MyProvider,
+    multi: true }                         multi: true }
+  // SAME shape for host apps           // SAME DI pattern
+
+  GAINS:
+  ✅ Strongly-typed signal instead of Observable<any>
+  ✅ No RxJS subscription management inside rendering engine
+  ✅ Moves out of temp/ into proper public API
+  ✅ Host apps change only the token name (one-line swap)
+```
+
+---
+
+### 10C. Unify the Split State in `ComponentTrackingService`
+
+**File**: `libs/flex-runtime/src/lib/services/tracking-service/component-tracking.service.ts`
+
+There is a deliberate workaround for a NgRx limitation — HTMLElements cannot be serialised into the store, so state is split across two dictionaries:
+
+```typescript
+// Store holds serialisable metadata:
+this.store.dispatch(ComponentTrackingStore.actions.registerControl({ trackedComponent: { ... } }));
+
+// Local dict holds the non-serialisable HTMLElement reference:
+private trackedComponents: Dictionary<HTMLElement> = {};
+```
+
+This dual-storage forces two sync points on every `registerComponent` and `deregisterComponent` call. If they ever get out of sync, components become ghost-tracked.
+
+```
+  SIMPLERUNTIME FIX (single Map, no store dispatch):
+  ════════════════════════════════════════════════════
+  private tracked = signal(new Map<string, TrackedComponent & { element: HTMLElement }>());
+
+  registerComponent(c: TrackedComponent): void {
+    if (this.tracked().has(c.componentInstanceID)) throw new Error('Already registered');
+    this.tracked.update(map => new Map(map).set(c.componentInstanceID, { ...c, element: c.element }));
+    this._registered$.next(c);
+  }
+
+  // ✅ One storage location:  no split, no sync risk
+  // ✅ HTMLElement stored directly (signals are not serialised)
+  // ✅ Removes all ComponentTrackingStore NgRx boilerplate
+```
+
+---
+
+### 10D. Remove the `immer` Dependency From Store Reducers
+
+**File**: `libs/flex-runtime/src/lib/services/runtime-config/flex-runtime-config.store.ts`
+
+Every NgRx store in the runtime uses `immer`'s `produce()` for immutable state updates:
+
+```typescript
+import { castDraft, Immutable, produce } from 'immer';
+
+on(
+  this.actions.registerConfig,
+  produce((state, payload) => {
+    state.config = castDraft(payload.config);  // ← immer cast required
+  }),
+),
+```
+
+With signals, immutability is handled by Angular's reactivity model — no `produce()`, no `castDraft()`, no `Immutable<T>` wrapper needed. The `immer` package (currently ~15 KB gzipped) can be removed from `package.json`.
+
+```
+  All five store files use immer:
+  ─────────────────────────────────────────────────────
+  configuration.store.ts          → produce() / castDraft()
+  component-tracking.store.ts     → produce() / castDraft()
+  flex-runtime-config.store.ts    → produce() / castDraft()
+  environment-variables.store.ts  → produce() / castDraft()
+  flex-property-binding.store.ts  → produce() / castDraft()
+  ─────────────────────────────────────────────────────
+  Bundle saving from removing immer + @ngrx/store + @ngrx/effects
+  + @ngrx/store-devtools + @ngrx/entity: est. ~120 KB gzipped
+```
+
+---
+
+### 10E. Replace Manual Subscription Dictionary in `FlexPropertyBindingService`
+
+**File**: `libs/flex-runtime/src/lib/services/property-binding/flex-property-binding.service.ts`
+
+The service manually manages per-control subscriptions with a plain-object dictionary. This is entirely hand-rolled memory management:
+
+```typescript
+private controlSubscriptions: { [controlInstanceId: string]: Subscription } = {};
+
+// On every control bind:   sub.add(...)
+// On every control unbind: sub.unsubscribe(); delete controlSubscriptions[id];
+```
+
+Combined with the NgRx `State` and `Store` injections for reading property binding state, this service has the highest complexity in the runtime.
+
+```
+  SIMPLERUNTIME FIX:
+  ══════════════════
+  // Signal per control, automatically cleaned up via DestroyRef
+  private bindings = signal<Map<string, PropertyBinding[]>>(new Map());
+
+  bindProperty(controlId: string, bindings: PropertyBindingConfiguration[]): void {
+    effect(() => {
+      // Re-evaluates reactively when upstream signal changes
+      // No manual Subscription object needed
+      const value = computeValue(bindings);
+      applyToControl(controlId, value);
+    }, { injector: this.controlInjectors.get(controlId) });
+    // DestroyRef on the per-control injector auto-cleans the effect
+  }
+
+  // ✅ Zero manual subscription lifecycle
+  // ✅ Removes Store + State NgRx injection from this service
+  // ✅ Effect auto-cancels when control DestroyRef fires
+```
+
+---
+
+### 10F. Replace `uuid` Library With Native `crypto.randomUUID()`
+
+**File**: `libs/flex-runtime/src/lib/services/flex-control-init.service.ts`
+
+```typescript
+import { v4 as generateUuid } from 'uuid';
+// ...
+const instanceId = generateUuid();
+```
+
+`crypto.randomUUID()` has been available in all modern browsers since Chrome 92 / Firefox 95 / Safari 15.4 and is available in Node 15.6+. The `uuid` npm package is a pure-JS polyfill that is no longer needed and can be removed.
+
+```
+  Before:  import { v4 as generateUuid } from 'uuid';
+           const id = generateUuid();
+
+  After:   const id = crypto.randomUUID();
+
+  ✅ One less npm dependency
+  ✅ Platform-native, always secure (uses CSPRNG)
+  ✅ ~8 KB bundle reduction
+```
+
+---
+
+### 10G. Fix the `broadcastRecieved$` Typo in the Public API
+
+**File**: `libs/flex-runtime/src/lib/services/flex-broadcast.service.ts`
+
+```typescript
+readonly broadcastRecieved$: Observable<BroadcastMessage>
+//                  ^^^^^^^^ "recieved" — wrong spelling
+```
+
+This is a public property on `IBroadcastService` consumed by host app components (`wv-flex-host.component.ts`). The typo is in the interface contract meaning all host apps currently use the misspelled name.
+
+```
+  MIGRATION PLAN (zero host-breaking):
+  ══════════════════════════════════════
+  Step 1 — Add correctly-spelled alias with correct spelling,
+           mark old spelling @deprecated:
+
+    /** @deprecated Use broadcastReceived$ */
+    readonly broadcastRecieved$: Observable<BroadcastMessage>;
+    readonly broadcastReceived$: Observable<BroadcastMessage>;
+
+  Step 2 — Migrate host apps to broadcastReceived$ (IDE rename-all)
+  Step 3 — Remove deprecated alias in next major version
+```
+
+---
+
+### 10H. Enable Zoneless Change Detection
+
+**Prerequisite**: All the signal migrations above (10A–10G) are completed.
+
+The current runtime is Zone.js-dependent because:
+- `EffectsModule.forRoot()` relies on Zone.js for async scheduling
+- `Observable`-based subscriptions in component lifecycle hooks trigger Zone.js patched microtasks
+- `Store.select()` pipes emit inside Angular's Zone
+
+Once all internal state is signals and all lifecycle hooks use `effect()` / `afterNextRender()`, the entire runtime becomes compatible with `provideExperimentalZonelessChangeDetection()`.
+
+```
+  HOST APP bootstrap (app.config.ts):
+  ═════════════════════════════════════
+  // BEFORE:
+  bootstrapApplication(AppComponent, {
+    providers: [ provideZoneChangeDetection({ eventCoalescing: true }) ]
+  });
+
+  // AFTER:
+  bootstrapApplication(AppComponent, {
+    providers: [ provideZonelessChangeDetection() ]   // Angular 21 stable
+  });
+
+  GAINS:
+  ✅ ~30 KB bundle reduction (zone.js removed)
+  ✅ Faster initial paint — no Zone.js monkey-patching at startup
+  ✅ Predictable change detection (only fires when signals change)
+  ✅ SSR-compatible by default (no async task tracking needed)
+```
+
+---
+
+### 10I. Resolve `FormToScreenRegistryService` Constructor Subscription Leak
+
+**File**: `libs/flex-runtime/src/lib/services/forms/form-to-screen-registry.service.ts`
+
+```typescript
+// TODO: https://jira.hyland.com/browse/SBPFAB-153
+constructor(
+  @Inject(SCREEN_TRACKING_SERVICE) screenTrackingService: IScreenTrackingService,
+  ...
+) {
+  // ❌ Subscription created in constructor with no unsubscribe path
+  screenTrackingService.screenDeregistered$.subscribe(
+    (screen) => this.unregisterScreen(screen.screenSnapshot.screenInstanceId)
+  );
+}
+```
+
+The subscription in the constructor has no teardown. If the service were ever recreated (e.g., in test harnesses or future hot-swap scenarios), this would leak.
+
+```
+  SIMPLERUNTIME FIX:
+  ══════════════════
+  private destroyRef = inject(DestroyRef);
+
+  constructor(...) {
+    toObservable(screenTracker.screenDeregistered)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(screen => this.unregisterScreen(...));
+  }
+
+  // ✅ Subscription lifetime tied to service's DestroyRef
+  // ✅ Resolves TODO SBPFAB-153
+```
+
+---
+
+### 10J. Hot-Swap Configuration Support (Currently Throws by Design)
+
+**File**: `libs/flex-runtime/src/lib/services/runtime-config/flex-runtime-config.service.ts`
+
+The current `setConfig()` explicitly throws on second call:
+
+```typescript
+if (oldConfig && oldConfig !== newConfig) {
+  throw new Error(
+    'The runtime currently does not support hotswapping configurations. ' +
+    'You must hard-load a new page with the new configuration.',
+  );
+}
+```
+
+The in-code comment lists exactly what would need to be done to support hot-swap. With SimpleRuntime's signal architecture, these blockers are resolved naturally:
+
+```
+  CURRENT BLOCKERS (from code comment)     HOW SIGNALS RESOLVE IT
+  ═════════════════════════════════════    ══════════════════════════════════════
+  "Clean Angular Router config"        →  routerConfigService.deregisterApplication()
+                                           already exists — call it before re-setting
+  "Set env vars for new apps,          →  Signal.set() replaces old value atomically,
+   get rid of old ones"                    no NgRx action/reducer cycle needed
+  "Screens pointing at specific        →  FlexAppViewerComponent effect() on config
+   screen must clear before change"        signal fires automatically on change,
+                                           naturally triggers cleanup then reload
+
+  RESULT: setConfig() can be upgraded from "throws" to
+          "performs cleanup + reinitialises" in SimpleRuntime.
+          No hard page reload needed for config-switching scenarios.
+```
+
+---
+
+### Summary of Additional Improvements
+
+```
+  ┌────┬──────────────────────────────────────┬──────────┬────────────────────────────┐
+  │ #  │ Improvement                          │ Effort   │ Gain                       │
+  ├────┼──────────────────────────────────────┼──────────┼────────────────────────────┤
+  │ 10A│ Fix history-corruption nav bug       │ Small    │ Correct UX, no data loss   │
+  │ 10B│ Retire temp/ external provider       │ Medium   │ Removes tech debt, typed   │
+  │ 10C│ Unify ComponentTracking split state  │ Medium   │ No sync risk, less code    │
+  │ 10D│ Remove immer dependency              │ Small    │ ~15 KB bundle saving       │
+  │ 10E│ Replace controlSubscriptions dict    │ Medium   │ Zero manual memory mgmt    │
+  │ 10F│ Replace uuid → crypto.randomUUID()   │ Trivial  │ ~8 KB, no dependency       │
+  │ 10G│ Fix broadcastRecieved$ typo          │ Trivial  │ Clean public API           │
+  │ 10H│ Enable Zoneless change detection     │ Large    │ ~30 KB, faster paint       │
+  │ 10I│ Fix constructor subscription leak    │ Small    │ Resolves TODO SBPFAB-153   │
+  │ 10J│ Enable hot-swap configuration        │ Large    │ No hard reload on re-config│
+  ├────┼──────────────────────────────────────┼──────────┼────────────────────────────┤
+  │    │ Total estimated bundle saving        │          │ ~120–175 KB gzipped        │
+  │    │ (NgRx + immer + uuid + zone.js)      │          │                            │
+  └────┴──────────────────────────────────────┴──────────┴────────────────────────────┘
+```
+
+---
+
 *Analysis based on actual source — `develop` branch, March 2026.*  
 *Key files examined: `flex.module.ts`, `flex-app-viewer.component.ts`, `flex-runtime-config.service.ts`,*  
-*`can-screen-deactivate.guard.ts`, `flex-configuration-override.model.ts`, `client.module.ts`.*
+*`flex-runtime-config.store.ts`, `can-screen-deactivate.guard.ts`, `component-tracking.service.ts`,*  
+*`flex-property-binding.service.ts`, `flex-control-init.service.ts`, `flex-broadcast.service.ts`,*  
+*`form-to-screen-registry.service.ts`, `flex-external-provider.interface.ts`, `client.module.ts`.*
