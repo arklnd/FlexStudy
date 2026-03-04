@@ -890,7 +890,7 @@ The in-code comment lists exactly what would need to be done to support hot-swap
 
 ---
 
-*Analysis based on actual source — `develop` branch, March 2026.*  
+*Analysis based on actual source — `develop` branch, 4th March 2026.*  
 *Key files examined: `flex.module.ts`, `flex-app-viewer.component.ts`, `flex-runtime-config.service.ts`,*  
 *`flex-runtime-config.store.ts`, `can-screen-deactivate.guard.ts`, `component-tracking.service.ts`,*  
 *`flex-property-binding.service.ts`, `flex-control-init.service.ts`, `flex-broadcast.service.ts`,*  

@@ -312,4 +312,4 @@ This resolver lives in `libs/flex-runtime/src/lib/allow-navigation-resolvers/`.
 
 ---
 
-*Generated from codebase analysis — `develop` branch, March 2026.*
+*Generated from codebase analysis — `develop` branch, 4th March 2026.*
