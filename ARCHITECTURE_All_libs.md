@@ -279,46 +279,45 @@ Every library that needs to call a service uses the token from `flex-shared`. Th
 
 ```
   flex-operations
-  ┌──────────────────────────────────────────────────────────────┐
-  │                                                              │
-  │  OPERATION TYPES  (each folder = one operation)              │
-  │  ┌────────────────────────────────────────────────────────┐  │
-  │  │ bind-form-data           push form values to state     │  │
-  │  │ broadcast-message-to-flex-host  cross-frame messaging  │  │
-  │  │ compare                  conditional branching logic   │  │
-  │  │ console-log              debug logging                 │  │
-  │  │ display-alert            modal alert dialogs           │  │
-  │  │ display-component-dialog render Angular component as   │  │
-  │  │                          a dialog                      │  │
-  │  │ display-dialog           show a Flex screen in dialog  │  │
-  │  │ display-toast            snackbar toasts               │  │
-  │  │ execute-http-request     arbitrary REST calls          │  │
-  │  │ execute-script           run inline JS/expression      │  │
-  │  │ invoke-method            call a named method on a ctrl │  │
-  │  │ invoke-method-on-control target a specific control     │  │
-  │  │ navigate-to-route        push Angular router URL       │  │
-  │  │ set-control-visibility   show/hide UI controls         │  │
-  │  │ set-flex-control-input   push value into ctrl @Input   │  │
-  │  │ set-property             write to state store          │  │
-  │  │ set-property-from-control-property  copy ctrl → state  │  │
-  │  │ set-property-from-route-data-param  copy URL → state   │  │
-  │  └────────────────────────────────────────────────────────┘  │
-  │                                                              │
-  │  STATE STORE                                                 │
-  │  ┌────────────────────────────────────────────────────────┐  │
-  │  │ OperationStore            NgRx feature slice           │  │
-  │  │ OperationStateStoreProxy  wraps Store, adds helpers    │  │
-  │  └────────────────────────────────────────────────────────┘  │
-  │                                                              │
-  │  SERVICES                                                    │
-  │  ┌────────────────────────────────────────────────────────┐  │
-  │  │ OperationExecutionService  resolves & runs op chain    │  │
-  │  │ OperationExecutorService   resolves a single op type   │  │
-  │  │ OperationTypeRegistry      maps type string → class    │  │
-  │  │ ExpressionEvaluator        evaluates binding exprs     │  │
-  │  │ SessionBasedLoggerService  per-session log correlation │  │
-  │  └────────────────────────────────────────────────────────┘  │
-  └──────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────────────────────┐
+  │                                                                                     │
+  │  OPERATION TYPES  (each folder = one operation)                                     │
+  │  ┌───────────────────────────────────────────────────────────────────────────────┐  │
+  │  │ bind-form-data                      push form values to state                 │  │
+  │  │ broadcast-message-to-flex-host      cross-frame messaging                     │  │
+  │  │ compare                             conditional branching logic               │  │
+  │  │ console-log                         debug logging                             │  │
+  │  │ display-alert                       modal alert dialogs                       │  │
+  │  │ display-component-dialog            render Angular component as a dialog      │  │
+  │  │ display-dialog                      show a Flex screen in dialog              │  │
+  │  │ display-toast                       snackbar toasts                           │  │
+  │  │ execute-http-request                arbitrary REST calls                      │  │
+  │  │ execute-script                      run inline JS/expression                  │  │
+  │  │ invoke-method                       call a named method on a ctrl             │  │
+  │  │ invoke-method-on-control            target a specific control                 │  │
+  │  │ navigate-to-route                   push Angular router URL                   │  │
+  │  │ set-control-visibility              show/hide UI controls                     │  │
+  │  │ set-flex-control-input              push value into ctrl @Input               │  │
+  │  │ set-property                        write to state store                      │  │
+  │  │ set-property-from-control-property  copy ctrl → state                         │  │
+  │  │ set-property-from-route-data-param  copy URL → state                          │  │
+  │  └───────────────────────────────────────────────────────────────────────────────┘  │
+  │                                                                                     │
+  │  STATE STORE                                                                        │
+  │  ┌────────────────────────────────────────────────────────┐                         │
+  │  │ OperationStore            NgRx feature slice           │                         │
+  │  │ OperationStateStoreProxy  wraps Store, adds helpers    │                         │
+  │  └────────────────────────────────────────────────────────┘                         │
+  │                                                                                     │
+  │  SERVICES                                                                           │
+  │  ┌────────────────────────────────────────────────────────┐                         │
+  │  │ OperationExecutionService  resolves & runs op chain    │                         │
+  │  │ OperationExecutorService   resolves a single op type   │                         │
+  │  │ OperationTypeRegistry      maps type string → class    │                         │
+  │  │ ExpressionEvaluator        evaluates binding exprs     │                         │
+  │  │ SessionBasedLoggerService  per-session log correlation │                         │
+  │  └────────────────────────────────────────────────────────┘                         │
+  └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Operation execution pipeline
