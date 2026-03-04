@@ -26,6 +26,7 @@
 16. [e2e-shared — Cypress Test Utilities](#16-e2e-shared--cypress-test-utilities)
 17. [Cross-Library Data-Flow Walkthrough](#17-cross-library-data-flow-walkthrough)
 18. [Design Principles (Repeated Across Libraries)](#18-design-principles-repeated-across-libraries)
+19. [Usage Metrics & Re-engineering Risk Ladder](#19-usage-metrics--re-engineering-risk-ladder)
 
 ---
 
@@ -122,6 +123,8 @@
 
 ## 3. `flex-config` — The Schema Dictionary
 
+> **Usage score**: 108+ import-lines · **Tier 1 — Critical Infrastructure** · Cannot be removed without breaking the whole codebase.
+
 ### What it owns
 
 ```
@@ -184,6 +187,8 @@
 
 ## 4. `flex-types` — Pure TypeScript Utilities
 
+> **Usage score**: 27 import-lines · **Tier 3 — Domain-Scoped** · Type-only utilities woven into components and models; refactorable with moderate effort.
+
 ### What it owns
 
 ```
@@ -213,6 +218,8 @@ These generics are used across **every** other library to write type-safe code w
 ---
 
 ## 5. `flex-shared` — Contracts & Cross-Cutting Services
+
+> **Usage score**: 195+ import-lines · **Tier 1 — Critical Infrastructure** · Most-imported library in the repo — every feature layer depends on its DI tokens.
 
 ### What it owns
 
@@ -274,6 +281,8 @@ Every library that needs to call a service uses the token from `flex-shared`. Th
 ---
 
 ## 6. `flex-operations` — The Operation Engine
+
+> **Usage score**: 26 import-lines · **Tier 3 — Domain-Scoped** · Well-defined `IOperationType` interface makes this replaceable with moderate effort.
 
 ### What it owns
 
@@ -363,6 +372,8 @@ Adding a new operation = add a new folder, implement `IOperationType`, register 
 
 ## 7. `flex-forms` — Dynamic Form Subsystem
 
+> **Usage score**: 8 import-lines · **Tier 4 — Entry-Point / Thin Wrapper** · Isolated form subsystem only activated by flex-runtime; easy to extract or replace.
+
 ### What it owns
 
 ```
@@ -424,6 +435,8 @@ Adding a new operation = add a new folder, implement `IOperationType`, register 
 ---
 
 ## 8. `flex-router` — Screen Navigation
+
+> **Usage score**: 35 import-lines · **Tier 2 — Core Feature** · Navigation wired into many screens; coordinated changes across 30+ files required to remove.
 
 ### What it owns
 
@@ -503,6 +516,8 @@ Host apps can add their own route guards by overriding this token — without mo
 
 ## 9. `flex-host` — Lightweight Consumer Wrapper
 
+> **Usage score**: 5 import-lines · **Tier 4 — Entry-Point / Thin Wrapper** · Safest candidate for removal; functionality can be inlined into consuming apps with minimal impact.
+
 ### What it owns
 
 ```
@@ -545,6 +560,8 @@ Host apps can add their own route guards by overriding this token — without mo
 ---
 
 ## 10. `onbase-apps-shell` — Application Shell UI
+
+> **Usage score**: 6 import-lines · **Tier 4 — Entry-Point / Thin Wrapper** · Self-contained shell chrome consumed only by host apps; extractable with low effort.
 
 ### What it owns
 
@@ -590,6 +607,8 @@ Host apps can add their own route guards by overriding this token — without mo
 ---
 
 ## 11. `onbase-web-server` — Full OnBase Integration Layer
+
+> **Usage score**: 31 import-lines · **Tier 2 — Core Feature** · Feature-rich integration layer touching viewer, search, workflow, and forms; high-effort to remove.
 
 ### What it owns
 
@@ -664,6 +683,8 @@ This is the **largest** library — it integrates with all OnBase Web Server cap
 
 ## 12. `onbase-web-server-core` — Low-Level Core Contracts
 
+> **Usage score**: 117 import-lines · **Tier 1 — Critical Infrastructure** · `TranslationPipe`, `ViewerType`, `WebClientAppHostConfig` etc. are used across every product area.
+
 ### What it owns
 
 ```
@@ -717,6 +738,8 @@ This is the **largest** library — it integrates with all OnBase Web Server cap
 ---
 
 ## 13. `shared-components` — Hyland UI Component Library
+
+> **Usage score**: 48 import-lines · **Tier 2 — Core Feature** · Generic UI widgets (`HyNgStyleHelperComponent`, `SharedComponentsModule`, data-grid) used across libs and apps.
 
 ### What it owns
 
@@ -778,6 +801,8 @@ All components are **dumb** (presentational only). They receive data through `@I
 
 ## 14. `wv-components` — WorkView-Specific Components
 
+> **Usage score**: 36 import-lines · **Tier 2 — Core Feature** · WorkView object viewer and filter-bar components consumed across two major product areas.
+
 ### What it owns
 
 ```
@@ -826,6 +851,8 @@ All components are **dumb** (presentational only). They receive data through `@I
 ---
 
 ## 15. `wf-approval-mgmt-lib` — Workflow Approval Management
+
+> **Usage score**: 23 import-lines · **Tier 3 — Domain-Scoped** · All references are inside the single `workflow-approval-mgmt` app; zero cross-product coupling.
 
 ### What it owns
 
@@ -889,6 +916,8 @@ All components are **dumb** (presentational only). They receive data through `@I
 ---
 
 ## 16. `e2e-shared` — Cypress Test Utilities
+
+> **Usage score**: 97 import-lines · **Tier 5 — Test Infrastructure Only** · Every match is inside an `*-e2e` app folder. Zero production or unit-test risk.
 
 ### What it owns
 
@@ -1003,6 +1032,76 @@ The following traces a user clicking a button that runs a `navigate-to-route` op
   │  Pluggable operations       New operations = new class implementing    │
   │                             IOperationType. No changes to the engine.  │
   └────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 19. Usage Metrics & Re-engineering Risk Ladder
+
+> **Methodology**: Counts reflect the number of `import … from '@hyland/<lib>'` lines found across all `*.ts` files in this monorepo (production code + unit tests combined; E2E test files counted separately where noted). Counts gathered by grepping the `develop` branch. Higher counts = more files depend on this library = higher re-engineering cost if removed or refactored.
+
+```
+  ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  TIER  │  LIBRARY                    │  IMPORT LINES  │  SCOPE            │  RE-ENG. RISK   │
+  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
+  │   1    │  flex-shared                │    195 +       │  whole repo       │  CANNOT REMOVE  │
+  │        │  onbase-web-server-core     │    117         │  whole repo       │  CANNOT REMOVE  │
+  │        │  flex-config                │    108 +       │  whole repo       │  CANNOT REMOVE  │
+  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
+  │   2    │  shared-components          │     48         │  libs + apps      │  HIGH EFFORT    │
+  │        │  wv-components              │     36         │  libs + apps      │  HIGH EFFORT    │
+  │        │  flex-router                │     35         │  libs + apps      │  HIGH EFFORT    │
+  │        │  onbase-web-server          │     31         │  apps only        │  HIGH EFFORT    │
+  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
+  │   3    │  flex-types                 │     27         │  libs + apps      │  MODERATE       │
+  │        │  flex-operations            │     26         │  libs + apps      │  MODERATE       │
+  │        │  wf-approval-mgmt-lib       │     23         │  wf-app only      │  MODERATE       │
+  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
+  │   4    │  flex-runtime               │      8         │  bootstrappers    │  LOW EFFORT     │
+  │        │  flex-forms                 │      8         │  flex stack only  │  LOW EFFORT     │
+  │        │  onbase-apps-shell          │      6         │  host apps only   │  LOW EFFORT     │
+  │        │  flex-host                  │      5         │  thin wrapper     │  LOW EFFORT     │
+  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
+  │   5    │  e2e-shared                 │     97 *       │  E2E only         │  ZERO PROD      │
+  └────────┴─────────────────────────────┴────────────────┴───────────────────┴─────────────────┘
+
+  * All 97 matches are inside *-e2e app folders. Zero production or unit-test usage.
+```
+
+### Tier Definitions
+
+| Tier | Label | Description |
+|------|-------|-------------|
+| **1** | Critical Infrastructure | The entire repo depends on these. Removing or changing them breaks almost every other library and app. Consider them immovable until a full re-architecture is planned. |
+| **2** | Core Feature Libraries | Tightly coupled to most apps. Removing requires coordinated changes across 30–50 files in multiple apps/libs. |
+| **3** | Domain-Scoped Libraries | Used broadly but within a narrower scope (e.g., one feature domain). Refactorable with moderate, bounded effort. |
+| **4** | Entry-Point / Thin Wrappers | Only touched by bootstrappers, host apps, or entry modules. Easiest candidates for extraction, removal, or replacement. |
+| **5** | Test Infrastructure Only | Zero production risk. Can be restructured, renamed, or replaced without touching any shipped code. |
+
+### Re-engineering Recommendations
+
+```
+  Safest to remove / extract first (Tier 4):
+  ➤  flex-host          ( 5 refs) — thin wrapper; logic can be inlined into consuming apps
+  ➤  onbase-apps-shell  ( 6 refs) — self-contained shell chrome; easy to promote into an app
+  ➤  flex-forms         ( 8 refs) — isolated form subsystem; only activated from flex-runtime
+  ➤  flex-runtime       ( 8 refs) — only called from main.ts / bootstrappers
+
+  Moderate effort, bounded scope (Tier 3):
+  ➤  wf-approval-mgmt-lib (23 refs) — used exclusively in workflow-approval-mgmt app
+  ➤  flex-types           (27 refs) — type-only; no runtime code to migrate
+  ➤  flex-operations      (26 refs) — well-defined interface; new engine = new class
+
+  Risky without a full audit (Tier 2):
+  ➤  onbase-web-server    (31 refs) — viewer, search, workflow, forms all pass through here
+  ➤  flex-router          (35 refs) — navigation wired into many screens
+  ➤  wv-components        (36 refs) — consumed across two major product areas
+  ➤  shared-components    (48 refs) — UI widgets appear in templates and specs everywhere
+
+  Do NOT touch without a breaking-change release strategy (Tier 1):
+  ➤  flex-config              (108+ refs) — defines the shape of every config object
+  ➤  onbase-web-server-core   (117  refs) — TranslationPipe, ViewerType used in every layer
+  ➤  flex-shared              (195+ refs) — DI token contracts for the entire stack
 ```
 
 ---
