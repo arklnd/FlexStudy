@@ -126,36 +126,36 @@
 
 ```
   flex-config
-  ┌─────────────────────────────────────────────────────────────┐
-  │                                                             │
-  │  MODELS  (data shape definitions)                           │
-  │  ┌──────────────────────────────────────────────────────┐   │
-  │  │ ApplicationConfiguration   top-level app config      │   │
-  │  │ ScreenConfiguration        a single screen's shape   │   │
-  │  │ ControlConfiguration       a single control's shape  │   │
-  │  │ ControlDefinition          capability declaration    │   │
-  │  │ OperationConfiguration     one operation step        │   │
-  │  │ RouteConfiguration         URL routing rules         │   │
-  │  │ PropertyBindingConfiguration  data binding rules     │   │
-  │  │ FlexRuntimeConfiguration   runtime feature flags     │   │
-  │  │ EnvironmentVariableCollection  env-specific values   │   │
-  │  │ LifecycleHook / LifecycleEvent  hooks on control life│   │
-  │  │ Theme / ThemeConfiguration  theming config           │   │
-  │  └──────────────────────────────────────────────────────┘   │
-  │                                                             │
-  │  CONFIG CREATORS  (fluent builder API)                      │
-  │  ┌──────────────────────────────────────────────────────┐   │
-  │  │ FlexApplicationConfigCreator   builds full app cfg   │   │
-  │  │ FlexScreenConfigCreator        builds a screen cfg   │   │
-  │  │ ControlConfigCreator           builds a control cfg  │   │
-  │  │ OperationConfigCreator         builds an op config   │   │
-  │  │ OperationListConfigCreator     builds op list        │   │
-  │  │ EventMappingConfigCreator      maps events → ops     │   │
-  │  │ HooksConfigCreator             lifecycle hooks       │   │
-  │  └──────────────────────────────────────────────────────┘   │
-  │                                                             │
-  │  HELPERS:  constant(), property(), storeGloballyAs()        │
-  └─────────────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  MODELS  (data shape definitions)                                │
+  │  ┌───────────────────────────────────────────────────────────┐   │
+  │  │ ApplicationConfiguration        top-level app config      │   │
+  │  │ ScreenConfiguration             a single screen's shape   │   │
+  │  │ ControlConfiguration            a single control's shape  │   │
+  │  │ ControlDefinition               capability declaration    │   │
+  │  │ OperationConfiguration          one operation step        │   │
+  │  │ RouteConfiguration              URL routing rules         │   │
+  │  │ PropertyBindingConfiguration    data binding rules        │   │
+  │  │ FlexRuntimeConfiguration        runtime feature flags     │   │
+  │  │ EnvironmentVariableCollection   env-specific values       │   │
+  │  │ LifecycleHook / LifecycleEvent  hooks on control life     │   │
+  │  │ Theme / ThemeConfiguration      theming config            │   │
+  │  └───────────────────────────────────────────────────────────┘   │
+  │                                                                  │
+  │  CONFIG CREATORS  (fluent builder API)                           │
+  │  ┌──────────────────────────────────────────────────────┐        │
+  │  │ FlexApplicationConfigCreator   builds full app cfg   │        │
+  │  │ FlexScreenConfigCreator        builds a screen cfg   │        │
+  │  │ ControlConfigCreator           builds a control cfg  │        │
+  │  │ OperationConfigCreator         builds an op config   │        │
+  │  │ OperationListConfigCreator     builds op list        │        │
+  │  │ EventMappingConfigCreator      maps events → ops     │        │
+  │  │ HooksConfigCreator             lifecycle hooks       │        │
+  │  └──────────────────────────────────────────────────────┘        │
+  │                                                                  │
+  │  HELPERS:  constant(), property(), storeGloballyAs()             │
+  └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key design decision
