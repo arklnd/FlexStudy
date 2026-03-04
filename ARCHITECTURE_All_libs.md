@@ -1038,32 +1038,34 @@ The following traces a user clicking a button that runs a `navigate-to-route` op
 
 ## 19. Usage Metrics & Re-engineering Risk Ladder
 
-> **Methodology**: Counts reflect the number of `import … from '@hyland/<lib>'` lines found across all `*.ts` files in this monorepo (production code + unit tests combined; E2E test files counted separately where noted). Counts gathered by grepping the `develop` branch. Higher counts = more files depend on this library = higher re-engineering cost if removed or refactored.
+> **Methodology**: Import-lines = occurrences of `import … from '@hyland/<lib>'` across all `*.ts` files. LOC columns are physical source lines per file type (`spec.ts` counted separately from production `.ts`). All figures from grepping / scanning the `develop` branch. Higher import-line count = more dependents; higher production LOC = heavier rewrite cost.
 
 ```
-  ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-  │  TIER  │  LIBRARY                    │  IMPORT LINES  │  SCOPE            │  RE-ENG. RISK   │
-  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
-  │   1    │  flex-shared                │    195 +       │  whole repo       │  CANNOT REMOVE  │
-  │        │  onbase-web-server-core     │    117         │  whole repo       │  CANNOT REMOVE  │
-  │        │  flex-config                │    108 +       │  whole repo       │  CANNOT REMOVE  │
-  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
-  │   2    │  shared-components          │     48         │  libs + apps      │  HIGH EFFORT    │
-  │        │  wv-components              │     36         │  libs + apps      │  HIGH EFFORT    │
-  │        │  flex-router                │     35         │  libs + apps      │  HIGH EFFORT    │
-  │        │  onbase-web-server          │     31         │  apps only        │  HIGH EFFORT    │
-  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
-  │   3    │  flex-types                 │     27         │  libs + apps      │  MODERATE       │
-  │        │  flex-operations            │     26         │  libs + apps      │  MODERATE       │
-  │        │  wf-approval-mgmt-lib       │     23         │  wf-app only      │  MODERATE       │
-  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
-  │   4    │  flex-runtime               │      8         │  bootstrappers    │  LOW EFFORT     │
-  │        │  flex-forms                 │      8         │  flex stack only  │  LOW EFFORT     │
-  │        │  onbase-apps-shell          │      6         │  host apps only   │  LOW EFFORT     │
-  │        │  flex-host                  │      5         │  thin wrapper     │  LOW EFFORT     │
-  ├────────┼─────────────────────────────┼────────────────┼───────────────────┼─────────────────┤
-  │   5    │  e2e-shared                 │     97 *       │  E2E only         │  ZERO PROD      │
-  └────────┴─────────────────────────────┴────────────────┴───────────────────┴─────────────────┘
+  ┌────────┬─────────────────────────────┬────────────────┬────────────────────────────────────────────────┬───────────────────┬─────────────────┐
+  |        |                             |                |                      LOC                       |                   |                 |
+  |        |                             |                ├────────────┬────────────┬───────────┬──────────┤                   |                 |
+  │  TIER  │  LIBRARY                    │  IMPORT LINES  │  .ts (src) │  .spec.ts  │   .html   │   .scss  │  SCOPE            │  RE-ENG. RISK   │
+  ├────────┼─────────────────────────────┼────────────────┼────────────┼────────────┼───────────┼──────────┼───────────────────┼─────────────────┤
+  │   1    │  flex-shared                │    195 +       │   2,041    │     504    │      1    │      0   │  whole repo       │  CANNOT REMOVE  │
+  │        │  onbase-web-server-core     │    117         │     468    │      47    │      0    │      0   │  whole repo       │  CANNOT REMOVE  │
+  │        │  flex-config                │    108 +       │   1,059    │       1    │      0    │      0   │  whole repo       │  CANNOT REMOVE  │
+  ├────────┼─────────────────────────────┼────────────────┼────────────┼────────────┼───────────┼──────────┼───────────────────┼─────────────────┤
+  │   2    │  shared-components          │     48         │   2,888    │   3,275    │    551    │    977   │  libs + apps      │  HIGH EFFORT    │
+  │        │  wv-components              │     36         │  12,844    │   6,363    │    864    │  1,199   │  libs + apps      │  HIGH EFFORT    │
+  │        │  flex-router                │     35         │   3,116    │   3,520    │      5    │     11   │  libs + apps      │  HIGH EFFORT    │
+  │        │  onbase-web-server          │     31         │   6,874    │     919    │    604    │    525   │  apps only        │  HIGH EFFORT    │
+  ├────────┼─────────────────────────────┼────────────────┼────────────┼────────────┼───────────┼──────────┼───────────────────┼─────────────────┤
+  │   3    │  flex-types                 │     27         │      91    │       0    │      0    │      0   │  libs + apps      │  MODERATE       │
+  │        │  flex-operations            │     26         │   2,736    │   3,388    │     22    │     14   │  libs + apps      │  MODERATE       │
+  │        │  wf-approval-mgmt-lib       │     23         │   6,341    │   7,281    │    547    │    345   │  wf-app only      │  MODERATE       │
+  ├────────┼─────────────────────────────┼────────────────┼────────────┼────────────┼───────────┼──────────┼───────────────────┼─────────────────┤
+  │   4    │  flex-runtime               │      8         │   2,055    │   3,025    │     24    │      6   │  bootstrappers    │  LOW EFFORT     │
+  │        │  flex-forms                 │      8         │   1,507    │     952    │      0    │      0   │  flex stack only  │  LOW EFFORT     │
+  │        │  onbase-apps-shell          │      6         │     218    │     212    │     63    │     51   │  host apps only   │  LOW EFFORT     │
+  │        │  flex-host                  │      5         │      93    │      48    │      1    │      0   │  thin wrapper     │  LOW EFFORT     │
+  ├────────┼─────────────────────────────┼────────────────┼────────────┼────────────┼───────────┼──────────┼───────────────────┼─────────────────┤
+  │   5    │  e2e-shared                 │     97 *       │     438    │       0    │      0    │      0   │  E2E only         │  ZERO PROD      │
+  └────────┴─────────────────────────────┴────────────────┴────────────┴────────────┴───────────┴──────────┴───────────────────┴─────────────────┘
 
   * All 97 matches are inside *-e2e app folders. Zero production or unit-test usage.
 ```
