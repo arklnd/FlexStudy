@@ -1,7 +1,7 @@
 # Full Library Stack — Architecture Deep Dive
 
 > **Audience**: Engineers new to this codebase.  
-> **Companion to**: `libs/flex-runtime/ARCHITECTURE.md` (read that first).  
+> **Companion to**: `ARCHITECTURE.md` (read that first).  
 > **Purpose**: Document the architecture of every library under `libs/` — what it owns, what it exports, and how it relates to its neighbours.
 
 ---
