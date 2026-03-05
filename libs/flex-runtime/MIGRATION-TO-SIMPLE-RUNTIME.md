@@ -484,7 +484,7 @@ The key insight is: **the public surface area is small and stable**. SimpleRunti
 
 ```
   ╔══════════════════════════════════════════════════════════════════════╗
-  ║  CAN flex-runtime BE SWAPPED WITH SimpleRuntime?                    ║
+  ║  CAN flex-runtime BE SWAPPED WITH SimpleRuntime?                     ║
   ╠══════════════════════════════════════════════════════════════════════╣
   ║                                                                      ║
   ║  ✅  YES — and host apps need only 2 file changes.                   ║
@@ -497,7 +497,7 @@ The key insight is: **the public surface area is small and stable**. SimpleRunti
   ║  • A deprecated FlexModule shim can absorb late adopters             ║
   ║                                                                      ║
   ║  THE SWAP DELIVERS:                                                  ║
-  ║  • Removal of @ngrx/store + @ngrx/effects + @ngrx/store-devtools    ║
+  ║  • Removal of @ngrx/store + @ngrx/effects + @ngrx/store-devtools     ║
   ║  • Angular 21 Signals replace all NgRx slices internally             ║
   ║  • No Zone.js subscriptions (zoneless-ready with effect())           ║
   ║  • Functional guards remove deprecated CanDeactivate class           ║
